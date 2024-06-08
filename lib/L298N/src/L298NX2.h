@@ -16,9 +16,11 @@ public:
    //     uint8_t pinEnable_B,
    //     uint8_t pinIN1_B,
    //     uint8_t pinIN2_B);
-   L298NX2(uint8_t pinIN1_A,
+   L298NX2(uint8_t pinEnable_A,
+            uint8_t pinIN1_A,
            uint8_t pinIN2_A,
            int pwmHz_A,
+           uint8_t pinEnable_B,
            uint8_t pinIN1_B,
            uint8_t pinIN2_B,
            int pwmHz_B);

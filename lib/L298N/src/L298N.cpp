@@ -22,35 +22,32 @@ typedef void (*CallBackFunction)();
 //   pinMode(_pinIN2, OUTPUT);
 // }
 
-L298N::L298N(uint8_t pinIN1, uint8_t pinIN2, int pwmHz) {
-  _pinEnable = -1;
+L298N::L298N(uint8_t pinEnable, uint8_t pinIN1, uint8_t pinIN2, int pwmHz) {
+  _pinEnable = pinEnable;
   _pinIN1 = pinIN1;
   _pinIN2 = pinIN2;
-  _pwmVal = 0;  // It's always at the max speed due to jumper on module
+  _pwmVal = 100;  // It's always at the max speed due to jumper on module
   _isMoving = false;
   _canMove = true;
   _lastMs = 0;
   _direction = STOP;
   _pwmHz = pwmHz;
 
-  // PWM id's are absolute so we do a pin check to make sure A & B are different
+  // // PWM id's are absolute so we do a pin check to make sure A & B are different
   if (pinIN1 == 26) {
     _pwm0 = 0;
-    _pwm1 = 1;
   } else {
-    _pwm0 = 2;
-    _pwm1 = 3;
+    _pwm0 = 1;
   }
   
 
-  // pinMode(_pinIN1, OUTPUT);
-  // pinMode(_pinIN2, OUTPUT);
+  pinMode(_pinIN1, OUTPUT);
+  pinMode(_pinIN2, OUTPUT);
 
   ledcSetup(_pwm0, _pwmHz, 8); // pwm channel, freq, resolution 1000
-  ledcSetup(_pwm1, _pwmHz, 8);
+  // ledcSetup(_pwm1, _pwmHz, 8);
   // attach the channel to the GPIO to be controlled
-  ledcAttachPin(_pinIN1, _pwm0);
-  ledcAttachPin(_pinIN2, _pwm1);
+  ledcAttachPin(pinEnable, _pwm0);
 }
 
 void L298N::setSpeed(unsigned short pwmVal) {
@@ -64,7 +61,7 @@ unsigned short L298N::getSpeed() {
 void L298N::setPWM(int pwmHz) {
   _pwmHz = pwmHz;
   ledcSetup(_pwm0, _pwmHz, 8); // pwm channel, freq, resolution
-  ledcSetup(_pwm1, _pwmHz, 8);
+  // ledcSetup(_pwm1, _pwmHz, 8);
 }
 
 unsigned long L298N::getPWM() {
@@ -72,26 +69,26 @@ unsigned long L298N::getPWM() {
 }
 
 void L298N::forward() {
-  // digitalWrite(_pinIN1, HIGH);
-  // digitalWrite(_pinIN2, LOW);
+  digitalWrite(_pinIN1, HIGH);
+  digitalWrite(_pinIN2, LOW);
 
-  // analogWrite(_pinIN1, _pwmVal);
+  // analogWrite(_pinEnable, _pwmVal);
 
   ledcWrite(_pwm0, _pwmVal);
-  ledcWrite(_pwm1, 0);
+  // ledcWrite(_pwm1, 0);
 
   _direction = FORWARD;
   _isMoving = true;
 }
 
 void L298N::backward() {
-  // digitalWrite(_pinIN1, LOW);
-  // // digitalWrite(_pinIN2, HIGH);
+  digitalWrite(_pinIN1, LOW);
+  digitalWrite(_pinIN2, HIGH);
   
-  // analogWrite(_pinIN2, _pwmVal);
+  // analogWrite(_pinEnable, _pwmVal);
 
-  ledcWrite(_pwm0, 0);
-  ledcWrite(_pwm1, _pwmVal);
+  ledcWrite(_pwm0, _pwmVal);
+  // ledcWrite(_pwm1, _pwmVal);
 
   _direction = BACKWARD;
   _isMoving = true;
@@ -163,11 +160,11 @@ void L298N::backwardFor(unsigned long delay) {
 }
 
 void L298N::stop() {
-  // digitalWrite(_pinIN1, LOW);
-  // digitalWrite(_pinIN2, LOW);
+  digitalWrite(_pinIN1, LOW);
+  digitalWrite(_pinIN2, LOW);
 
-  ledcWrite(_pwm0, 0);
-  ledcWrite(_pwm1, 0);
+  ledcWrite(_pwm0, 255);
+  // ledcWrite(_pwm1, 0);
 
   // ledcWrite(_pinEnable, 255);
 

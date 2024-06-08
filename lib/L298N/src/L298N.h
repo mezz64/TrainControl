@@ -16,7 +16,8 @@ public:
    } Direction;
 
    // L298N(uint8_t pinEnable, uint8_t pinIN1, uint8_t pinIN2);
-   L298N(uint8_t pinIN1, uint8_t pinIN2, int pwmHz);
+   // L298N(uint8_t pinIN1, uint8_t pinIN2, int pwmHz);
+   L298N(uint8_t pinEnable, uint8_t pinIN1, uint8_t pinIN2, int pwmHz);
    void setSpeed(unsigned short pwmVal);
    unsigned short getSpeed();
    void forward();

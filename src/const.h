@@ -50,6 +50,14 @@
 #define B 1
 #define CURR 2
 
+// Pin definition
+const unsigned int EN_A = 12; //EN A
+const unsigned int IN1_A = 26; //IN1
+const unsigned int IN2_A = 25; //IN2
+const unsigned int EN_B = 1; //EN B
+const unsigned int IN1_B = 33; //IN3
+const unsigned int IN2_B = 32; //IN4
+
 const int FORWARD = 0;
 const int REVERSE = 1;
 const int STOP = -1;

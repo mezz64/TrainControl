@@ -27,14 +27,16 @@ typedef void (*CallBackFunction)();
 //   _lastMs = 0;
 // }
 
-L298NX2::L298NX2(uint8_t pinIN1_A,
+L298NX2::L298NX2(uint8_t pinEnable_A,
+                 uint8_t pinIN1_A,
                  uint8_t pinIN2_A,
                  int pwmHz_A,
+                 uint8_t pinEnable_B,
                  uint8_t pinIN1_B,
                  uint8_t pinIN2_B,
-                 int pwmHz_B) : _motorA(pinIN1_A,
+                 int pwmHz_B) : _motorA(pinEnable_A, pinIN1_A,
                                              pinIN2_A, pwmHz_A),
-                                     _motorB(
+                                     _motorB(pinEnable_B,
                                          pinIN1_B,
                                          pinIN2_B, pwmHz_B)
 {

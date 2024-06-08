@@ -6,6 +6,7 @@
 
 // Motor Control
 #include <L298NX2.h>
+// #include <L298N.h>
 
 // Encoders
 #include "AiEsp32RotaryEncoder.h"
@@ -25,8 +26,8 @@
 #include <Fonts/FreeSansBold18pt7b.h>
 #include <Adafruit_SSD1306.h>
 
-// Current/Volt Measurements
-#include <INA3221.h>
+// Current Measurement ADC
+#include <Adafruit_ADS1X15.h>
 
 // Wifi Items
 #include <WiFi.h>
@@ -50,12 +51,6 @@ Adafruit_SSD1306 *display[2] = { &dA, &dB };
 
 // Duplicate display buffers
 static uint8_t displayBuffer[2][(SCREEN_WIDTH * SCREEN_HEIGHT + 7) / 8];
-
-// Pin definition
-const unsigned int IN1_A = 26; //IN1
-const unsigned int IN2_A = 25; //IN2
-const unsigned int IN1_B = 33; //IN3
-const unsigned int IN2_B = 32; //IN4
 
 const char* ssid = "SSID";
 const char* password = "PASS";
@@ -88,12 +83,11 @@ int trainPWMHz[2];
 bool pwmCHANGED[2] = {false,false};
 
 unsigned long current_update_time;
-const unsigned long current_period = 500; //update period
+const unsigned long current_period = 100; //update period
 
 uint8_t soundVol, psoundVol;
 
 float trainCURRENT[2] = {0.0,0.0}; 
-float trainVOLTAGE[2] = {0.0,0.0};
 
 AiEsp32RotaryEncoder ERotary[2] = { 
   AiEsp32RotaryEncoder(ECLK_A, EDAT_A, ESW_A, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS), 
@@ -102,8 +96,8 @@ AiEsp32RotaryEncoder ERotary[2] = {
 //Initialize both motors
 // L298NX2 trains(IN1_A, IN2_A, 1000, IN1_B, IN2_B, 1000);
 L298N train[2] = {
-  L298N(IN1_A, IN2_A, 1000),
-  L298N(IN1_B, IN2_B, 1000)};
+  L298N(EN_A ,IN1_A, IN2_A, 1000),
+  L298N(EN_B, IN1_B, IN2_B, 1000)};
 
 
 // Initialise the player, it defaults to using Serial.
@@ -115,14 +109,13 @@ EasyButton crazyButton(CRAZY_PIN, 100, true, false);
 EasyButton directionAButton(DIRECTION_A_PIN, 500, true, false);
 EasyButton directionBButton(DIRECTION_B_PIN, 500, true, false);
 
-// Initialize current/voltage board
-// Set I2C address - 0x40 (A0 pin -> GND), 0x41 (A0 pin -> VCC)
-INA3221 measureIV(INA3221_ADDR40_GND);
+// Initialize current ADC ADS1115
+Adafruit_ADS1115 ads;
 
 // Declare function prototypes
 void disp_update_speed(uint8_t id, long value);
 void disp_update_direction(uint8_t id);
-void disp_update_voltcurrent(uint8_t id);
+void disp_update_current(uint8_t id);
 void ui_update_direction(uint8_t id);
 void ui_update_current(uint8_t id);
 void disp_overlay(uint8_t id, uint8_t type);
@@ -321,7 +314,7 @@ void disp_update_pwm(uint8_t id)
   display[id]->display();
 }
 
-void disp_update_voltcurrent(uint8_t id)
+void disp_update_current(uint8_t id)
 {
   TCA9548A(id);
   display[id]->fillRect(2,52,46,10,BLACK); //clear bottom left box
@@ -329,12 +322,12 @@ void disp_update_voltcurrent(uint8_t id)
   display[id]->setFont(NULL);
   display[id]->setTextColor(WHITE);
   //Voltage
-  display[id]->setCursor(8,53); // Bottom left Position
-  display[id]->print(trainCURRENT[id]);
-  display[id]->print("V");
+  // display[id]->setCursor(8,53); // Bottom left Position
+  // display[id]->print(trainCURRENT[id]);
+  // display[id]->print("V");
   //Current
   display[id]->setCursor(58,53); // Bottom right Position
-  display[id]->print(trainVOLTAGE[id]);
+  display[id]->print(trainCURRENT[id]);
   display[id]->print("mA");
   display[id]->display();
 }
@@ -632,15 +625,9 @@ void setup() {
 
   ArduinoOTA.begin();
 
-  // Start current/volt board
+  // Start current adc board
   TCA9548A(CURR);
-  measureIV.begin(&Wire);
-  measureIV.reset();
-  measureIV.setShuntRes(100, 100, 100); // Set shunt resistors to 100 mOhm for all channels
-  // for (int i=0; i <=1; i++){
-  //   trainCURRENT[i] = 0.0;
-  //   trainVOLTAGE[i] = 0.00;
-  // }
+  ads.setGain(GAIN_TWO);
 
 
   TCA9548A(A);
@@ -776,16 +763,17 @@ void loop() {
     rssi_update_time = millis();
   }
 
-  // Get current/voltage measurements
+  // Get current measurements
   if (current_time - current_update_time >= current_period || first_run) {
     TCA9548A(CURR);
-    trainCURRENT[A] = measureIV.getCurrent(INA3221_CH1) * 100;
-    trainCURRENT[B] = measureIV.getCurrent(INA3221_CH2) * 100;
-    trainVOLTAGE[A] = measureIV.getVoltage(INA3221_CH1);
-    trainVOLTAGE[B] = measureIV.getVoltage(INA3221_CH2);
+    int16_t adc0, adc1;
+    adc0 = ads.readADC_SingleEnded(0);
+    adc1 = ads.readADC_SingleEnded(1);
+    trainCURRENT[A] = ads.computeVolts(adc0) / 0.15;
+    trainCURRENT[B] = ads.computeVolts(adc0) / 0.15;
 
     for (int i=0; i <= 1; i++) {
-      disp_update_voltcurrent(i);
+      disp_update_current(i);
       ui_update_current(i);
     }
     
