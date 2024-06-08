@@ -1,9 +1,8 @@
-
 #pragma once
 
 #include "Arduino.h"
 #include <ESPUI.h>
-#include "const.h"
+// #include "const.h"
 
 void setUpUI();
 // void enterWifiDetailsCallback(Control *sender, int type);
@@ -19,4 +18,5 @@ void randomString(char *buf, int len);
 void extendedCallback(Control* sender, int type, void* param);
 
 extern uint16_t traindirectionlabel[2], trainSlider[2], trainPWM[2];
+extern uint16_t traincurrentlabel[2];// = {0,0};
 extern uint16_t soundlabel, volSlider;

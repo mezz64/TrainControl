@@ -1,7 +1,9 @@
 #include "ui.h"
+#include "const.h"
 
 //UI handles
 uint16_t traindirectionlabel[2], trainSlider[2], trainPWM[2];
+uint16_t traincurrentlabel[2];
 uint16_t soundlabel, volSlider;
 
 uint16_t wifi_ssid_text, wifi_pass_text;
@@ -42,6 +44,7 @@ void setUpUI() {
     traindirectionlabel[A] = ESPUI.addControl(Label, "", "Direction", Emerald, groupAlabel);
 	ESPUI.setElementStyle(traindirectionlabel[A], tgroupLabelStyle);
 	ESPUI.addControl(Button, "a_direction", "Change Direction", Alizarin, groupAlabel, generalCallback);
+	ESPUI.setElementStyle(traincurrentlabel[A], tgroupLabelStyle);
     trainSlider[A] = ESPUI.addControl(Slider, "a_slider", "0", Turquoise, groupAlabel, generalCallback);
 	ESPUI.addControl(Min, "", "0", None, trainSlider[A]);
 	ESPUI.addControl(Max, "", "100", None, trainSlider[A]);
@@ -54,6 +57,7 @@ void setUpUI() {
     traindirectionlabel[B] = ESPUI.addControl(Label, "", "Direction", Emerald, groupBlabel);
 	ESPUI.setElementStyle(traindirectionlabel[B], tgroupLabelStyle);
 	ESPUI.addControl(Button, "b_direction", "Change Direction", Alizarin, groupBlabel, generalCallback);
+	ESPUI.setElementStyle(traincurrentlabel[B], tgroupLabelStyle);
     trainSlider[B] = ESPUI.addControl(Slider, "b_slider", "0", Turquoise, groupBlabel, generalCallback);
 	ESPUI.addControl(Min, "", "0", None, trainSlider[B]);
 	ESPUI.addControl(Max, "", "100", None, trainSlider[B]);

@@ -22,8 +22,11 @@
 #include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSans24pt7b.h>
-#include <Fonts/FreeSansBold24pt7b.h>
+#include <Fonts/FreeSansBold18pt7b.h>
 #include <Adafruit_SSD1306.h>
+
+// Current/Volt Measurements
+#include <INA3221.h>
 
 // Wifi Items
 #include <WiFi.h>
@@ -84,7 +87,13 @@ bool uiSPEEDCHANGED[2] = {false, false};
 int trainPWMHz[2];
 bool pwmCHANGED[2] = {false,false};
 
+unsigned long current_update_time;
+const unsigned long current_period = 500; //update period
+
 uint8_t soundVol, psoundVol;
+
+float trainCURRENT[2] = {0.0,0.0}; 
+float trainVOLTAGE[2] = {0.0,0.0};
 
 AiEsp32RotaryEncoder ERotary[2] = { 
   AiEsp32RotaryEncoder(ECLK_A, EDAT_A, ESW_A, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS), 
@@ -106,10 +115,16 @@ EasyButton crazyButton(CRAZY_PIN, 100, true, false);
 EasyButton directionAButton(DIRECTION_A_PIN, 500, true, false);
 EasyButton directionBButton(DIRECTION_B_PIN, 500, true, false);
 
+// Initialize current/voltage board
+// Set I2C address - 0x40 (A0 pin -> GND), 0x41 (A0 pin -> VCC)
+INA3221 measureIV(INA3221_ADDR40_GND);
+
 // Declare function prototypes
 void disp_update_speed(uint8_t id, long value);
 void disp_update_direction(uint8_t id);
+void disp_update_voltcurrent(uint8_t id);
 void ui_update_direction(uint8_t id);
+void ui_update_current(uint8_t id);
 void disp_overlay(uint8_t id, uint8_t type);
 bool speedControl(uint8_t id);
 void commandMotor(uint8_t id);
@@ -187,11 +202,15 @@ void disp_update_speed(uint8_t id, long value)
 {
   // value = map(value, 0, 255, 0, 100);
   TCA9548A(id);
-  display[id]->setFont(&FreeSansBold24pt7b);
-  display[id]->fillRect(2,18,102,45,BLACK); // Clear speed window
-  display[id]->setTextSize(1);
+  // display[id]->setFont(&FreeSansBold24pt7b);
+  // display[id]->fillRect(2,18,102,45,BLACK); // Clear speed window
+  // display[id]->setTextSize(1);
+  // display[id]->setTextColor(WHITE);
+  // display[id]->setCursor(3, 56);
+  display[id]->setFont(&FreeSansBold18pt7b);
+  display[id]->fillRect(2,18,102,31,BLACK); // Clear speed window
   display[id]->setTextColor(WHITE);
-  display[id]->setCursor(3, 56);
+  display[id]->setCursor(12, 45);
   // Display static text
   display[id]->print(value);
   display[id]->setFont(&FreeSansBold12pt7b);
@@ -210,6 +229,13 @@ void ui_update_direction(uint8_t id)
     dname = "Stopped"; 
   }
   ESPUI.updateLabel(traindirectionlabel[id], dname);
+}
+
+void ui_update_current(uint8_t id)
+{
+  String lcurr = ""; 
+  lcurr = String(trainCURRENT[id]);
+  ESPUI.updateLabel(traincurrentlabel[id], lcurr);
 }
 
 void ui_update_sound(uint8_t id)
@@ -292,6 +318,24 @@ void disp_update_pwm(uint8_t id)
   display[id]->setCursor(3,4); // Top Position
   display[id]->print(trainPWMHz[id]);
   display[id]->print(" Hz");
+  display[id]->display();
+}
+
+void disp_update_voltcurrent(uint8_t id)
+{
+  TCA9548A(id);
+  display[id]->fillRect(2,52,46,10,BLACK); //clear bottom left box
+  display[id]->fillRect(53,52,50,10,BLACK); //clear bottom right box
+  display[id]->setFont(NULL);
+  display[id]->setTextColor(WHITE);
+  //Voltage
+  display[id]->setCursor(8,53); // Bottom left Position
+  display[id]->print(trainCURRENT[id]);
+  display[id]->print("V");
+  //Current
+  display[id]->setCursor(58,53); // Bottom right Position
+  display[id]->print(trainVOLTAGE[id]);
+  display[id]->print("mA");
   display[id]->display();
 }
 
@@ -588,6 +632,17 @@ void setup() {
 
   ArduinoOTA.begin();
 
+  // Start current/volt board
+  TCA9548A(CURR);
+  measureIV.begin(&Wire);
+  measureIV.reset();
+  measureIV.setShuntRes(100, 100, 100); // Set shunt resistors to 100 mOhm for all channels
+  // for (int i=0; i <=1; i++){
+  //   trainCURRENT[i] = 0.0;
+  //   trainVOLTAGE[i] = 0.00;
+  // }
+
+
   TCA9548A(A);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display[A]->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
@@ -630,6 +685,7 @@ void setup() {
     display[i]->drawRect(0,0,128,16,WHITE); // Top yellow
     display[i]->drawRect(105, 17, 23, 47, 1); // Direction box
     display[i]->drawRect(0, 17, 106, 47, 1); // Speed Box
+    display[i]->drawLine(50, 53, 50, 62, 1); //volt-current line
 
     // display[i]->setFont(NULL);
     // display[i]->setTextColor(WHITE);
@@ -719,6 +775,21 @@ void loop() {
 
     rssi_update_time = millis();
   }
+
+  // Get current/voltage measurements
+  if (current_time - current_update_time >= current_period || first_run) {
+    TCA9548A(CURR);
+    trainCURRENT[A] = measureIV.getCurrent(INA3221_CH1) * 100;
+    trainCURRENT[B] = measureIV.getCurrent(INA3221_CH2) * 100;
+    trainVOLTAGE[A] = measureIV.getVoltage(INA3221_CH1);
+    trainVOLTAGE[B] = measureIV.getVoltage(INA3221_CH2);
+
+    for (int i=0; i <= 1; i++) {
+      disp_update_voltcurrent(i);
+      ui_update_current(i);
+    }
+    
+  }
   
   // Handle direction changes
   for (int i=0; i <= 1; i++) {
@@ -773,7 +844,7 @@ void loop() {
   for (int i=0; i <= 1; i++) {
     if (pwmCHANGED[i]){
       train[i].setPWM(trainPWMHz[i]);
-      disp_update_pwm(i);
+      disp_update_pwm(i); 
       pwmCHANGED[i] = false;
     }
   }

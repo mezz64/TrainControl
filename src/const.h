@@ -48,6 +48,7 @@
 
 #define A 0  
 #define B 1
+#define CURR 2
 
 const int FORWARD = 0;
 const int REVERSE = 1;
@@ -67,3 +68,7 @@ extern bool uiSPEEDCHANGED[2];
 extern uint8_t soundVol;
 extern int trainPWMHz[2];
 extern bool pwmCHANGED[2];
+
+extern float trainCURRENT[2];// = {0.0,0.0}; 
+extern float trainVOLTAGE[2];// = {0.0,0.0};
+// extern bool currCHANGED[2];
