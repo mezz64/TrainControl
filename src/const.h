@@ -14,8 +14,8 @@
 #define LOGO_WIDTH    16
 
 #define HORN_PIN 36
-#define BELL_PIN 4 //39
-#define CRAZY_PIN 23 //35
+#define BELL_PIN 35 //4
+#define CRAZY_PIN 39 //23
 
 #define DIRECTION_A_PIN 34
 #define DIRECTION_B_PIN 27
@@ -51,10 +51,10 @@
 #define CURR 2
 
 // Pin definition
-const unsigned int EN_A = 12; //EN A
+const unsigned int EN_A = 23; //EN A
 const unsigned int IN1_A = 26; //IN1
 const unsigned int IN2_A = 25; //IN2
-const unsigned int EN_B = 1; //EN B
+const unsigned int EN_B = 4; //EN B
 const unsigned int IN1_B = 33; //IN3
 const unsigned int IN2_B = 32; //IN4
 

@@ -769,8 +769,8 @@ void loop() {
     int16_t adc0, adc1;
     adc0 = ads.readADC_SingleEnded(0);
     adc1 = ads.readADC_SingleEnded(1);
-    trainCURRENT[A] = ads.computeVolts(adc0) / 0.15;
-    trainCURRENT[B] = ads.computeVolts(adc0) / 0.15;
+    trainCURRENT[A] = (ads.computeVolts(adc0) / 0.15) * 1000;
+    trainCURRENT[B] = (ads.computeVolts(adc0) / 0.15) * 1000;
 
     for (int i=0; i <= 1; i++) {
       disp_update_current(i);
